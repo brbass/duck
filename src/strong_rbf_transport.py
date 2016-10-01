@@ -6,16 +6,14 @@ import scipy.integrate as spi
 import sys
 import itertools
 
-def weak_transport(basis_str,
-                   weight_str,
-                   num_points,
-                   ep_basis,
-                   ep_weight,
-                   sigma1,
-                   sigma2,
-                   source1,
-                   source2,
-                   psi0):
+def strong_transport(basis_str,
+                     num_points,
+                     ep_basis,
+                     sigma1,
+                     sigma2,
+                     source1,
+                     source2,
+                     psi0):
     # Initialize geometry
     length = 2
     points = np.linspace(0, length, num_points)
@@ -34,25 +32,7 @@ def weak_transport(basis_str,
     else:
         print("basis not found: " + basis_str)
         return
-    if weight_str == "multiquadric":
-        weight = Multiquadric(ep_weight,
-                              points)
-    elif weight_str == "gaussian":
-        weight = Gaussian(ep_weight,
-                          points)
-    elif weight_str == "wendland":
-        weight = Wendland(ep_weight,
-                          points)
-    elif weight_str == "constant":
-        weight = Constant(ep_weight,
-                          points)
-    elif weight_str == "compact_gaussian":
-        weight = Compact_Gaussian(ep_weight,
-                                      points)
-    else:
-        print("weight not found: " + weight_str)
-        return
-
+    
     # Set cross section and source
     sigma_t = Cross_Section(sigma1,
                             sigma2)
@@ -66,25 +46,15 @@ def weak_transport(basis_str,
     # Set matrix
     for i in range(num_points):
         for j in range(num_points):
-            def integrand(x):
-                return (-mu * weight.dval(j, x) + sigma_t.val(x) * weight.val(j, x)) * basis.val(i, x)
-            limits = weight.limits(j)
-            
-            t1 = mu * basis.val(i, points[-1]) * weight.val(j, points[-1])
-            t2, abserr = spi.quad(integrand, limits[0], limits[1])
-            a[j, i] = t1 + t2
-            
+            a[j, i] = mu * basis.dval(i, points[j]) + sigma_t.val(points[j]) * basis.val(i, points[j])
+    for i in range(num_points):
+            a[0, i] = basis.val(i, points[0])
+    
     # Set RHS
     for j in range(num_points):
-        limits = weight.limits(j)
-        def integrand(x):
-            return weight.val(j, x) * source.val(x)
-
-        t1 = mu * psi0 * weight.val(j, points[0])
-        print(t1)
-        t2, abserr = spi.quad(integrand, limits[0], limits[1])
-        b[j] = t1 + t2
-        
+        b[j] = source.val(points[j])
+    b[0] = psi0
+    
     alpha = spl.solve(a, b)
 
     psi = np.zeros(num_points)
@@ -105,31 +75,27 @@ def weak_transport(basis_str,
     return points, analytic, psi, err
 
 if __name__ == '__main__':
-    if len(sys.argv) != 11:
-        print("weak_rbf_transport [function basis weight num_points ep_basis ep_weight sigma1 sigma2 source1 source2 psi0]")
+    if len(sys.argv) != 9:
+        print("strong_rbf_transport [function basis num_points shape sigma1 sigma2 source1 source2 psi0]")
         sys.exit()
     i = itertools.count(1)
     basis = str(sys.argv[next(i)])
-    weight = str(sys.argv[next(i)])
     num_points = int(sys.argv[next(i)])
-    ep_basis = float(sys.argv[next(i)])
-    ep_weight = float(sys.argv[next(i)])
+    shape = float(sys.argv[next(i)])
     sigma1 = float(sys.argv[next(i)])
     sigma2 = float(sys.argv[next(i)])
     source1 = float(sys.argv[next(i)])
     source2 = float(sys.argv[next(i)])
     psi0 = float(sys.argv[next(i)])
 
-    points, analytic, psi, err = weak_transport(basis,
-                                                weight,
-                                                num_points,
-                                                ep_basis,
-                                                ep_weight,
-                                                sigma1,
-                                                sigma2,
-                                                source1,
-                                                source2,
-                                                psi0)
+    points, analytic, psi, err = strong_transport(basis,
+                                                  num_points,
+                                                  shape,
+                                                  sigma1,
+                                                  sigma2,
+                                                  source1,
+                                                  source2,
+                                                  psi0)
     if True:
         col = ['#66c2a5','#fc8d62','#8da0cb','#e78ac3','#a6d854']
         fig, ax1 = plt.subplots()
