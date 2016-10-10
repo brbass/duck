@@ -76,7 +76,7 @@ def strong_transport(basis_str,
 
 if __name__ == '__main__':
     if len(sys.argv) != 9:
-        print("strong_rbf_transport [function basis num_points shape sigma1 sigma2 source1 source2 psi0]")
+        print("strong_rbf_transport [basis num_points shape sigma1 sigma2 source1 source2 psi0]")
         sys.exit()
     i = itertools.count(1)
     basis = str(sys.argv[next(i)])

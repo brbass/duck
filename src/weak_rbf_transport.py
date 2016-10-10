@@ -81,7 +81,6 @@ def weak_transport(basis_str,
             return weight.val(j, x) * source.val(x)
 
         t1 = mu * psi0 * weight.val(j, points[0])
-        print(t1)
         t2, abserr = spi.quad(integrand, limits[0], limits[1])
         b[j] = t1 + t2
         
@@ -106,7 +105,7 @@ def weak_transport(basis_str,
 
 if __name__ == '__main__':
     if len(sys.argv) != 11:
-        print("weak_rbf_transport [function basis weight num_points ep_basis ep_weight sigma1 sigma2 source1 source2 psi0]")
+        print("weak_rbf_transport [basis weight num_points ep_basis ep_weight sigma1 sigma2 source1 source2 psi0]")
         sys.exit()
     i = itertools.count(1)
     basis = str(sys.argv[next(i)])
