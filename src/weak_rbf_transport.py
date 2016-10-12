@@ -6,6 +6,13 @@ import scipy.integrate as spi
 import sys
 import itertools
 
+def get_offset(points,
+               sigma_t):
+    # pe = np.array([sigma_t.val(point) * 2 * (points[1] - points[0]) for point in points])
+    # ga = np.cosh(pe) / np.sinh(pe) - 1. / pe
+    # return 0.3 * ga * (points[1] - points[0])
+    return np.array([(points[1] - points[0]) / (sigma_t.val(point) + 0.5) for point in points])
+
 def weak_transport(basis_str,
                    weight_str,
                    num_points,
@@ -26,6 +33,9 @@ def weak_transport(basis_str,
                             sigma2)
     source = Cross_Section(source1,
                            source2)
+    offset_distance = get_offset(points,
+                                 sigma_t)
+    offset_distance[0] = offset_distance[-1] = 0.
     
     # Set basis and weight functions
     if basis_str == "multiquadric":
@@ -46,6 +56,7 @@ def weak_transport(basis_str,
     else:
         print("basis not found: " + basis_str)
         return
+    
     if weight_str == "multiquadric":
         weight = Multiquadric(ep_weight,
                               points)
@@ -65,6 +76,12 @@ def weak_transport(basis_str,
         weight = SUPG_Gaussian(ep_weight,
                                points,
                                sigma_t)
+    elif weight_str == "offset_gaussian":
+        weight = Compact_Gaussian(ep_weight,
+                                  points - offset_distance)
+    elif weight_str == "offset_multiquadric":
+        weight = Multiquadric(ep_weight,
+                              points - offset_distance)
     elif weight_str == "mls":
         polyord = 2
         num_neighbors = 3
@@ -100,7 +117,6 @@ def weak_transport(basis_str,
         t2, abserr = spi.quad(integrand, limits[0], limits[1])
         b[j] = t1 + t2
         
-    print(a)
     alpha = spl.solve(a, b)
 
     psi = np.zeros(num_points)
