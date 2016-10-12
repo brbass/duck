@@ -21,6 +21,12 @@ def weak_transport(basis_str,
     points = np.linspace(0, length, num_points)
     mu = 1
     
+    # Set cross section and source
+    sigma_t = Cross_Section(sigma1,
+                            sigma2)
+    source = Cross_Section(source1,
+                           source2)
+    
     # Set basis and weight functions
     if basis_str == "multiquadric":
         basis = Multiquadric(ep_basis,
@@ -48,17 +54,15 @@ def weak_transport(basis_str,
                           points)
     elif weight_str == "compact_gaussian":
         weight = Compact_Gaussian(ep_weight,
-                                      points)
+                                  points)
+    elif weight_str == "supg_gaussian":
+        weight = SUPG_Gaussian(ep_weight,
+                               points,
+                               sigma_t)
     else:
         print("weight not found: " + weight_str)
         return
 
-    # Set cross section and source
-    sigma_t = Cross_Section(sigma1,
-                            sigma2)
-    source = Cross_Section(source1,
-                           source2)
-    
     # Initialize arrays
     a = np.zeros((num_points, num_points), dtype=float)
     b = np.zeros((num_points), dtype=float)
