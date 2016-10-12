@@ -30,7 +30,6 @@ class Compact_RBF(RBF):
         for i, point in enumerate(self.points):
             self.limit[i, 0] = np.amax([0., self.points[i] - self.max_distance / self.shape])
             self.limit[i, 1] = np.amin([self.points[-1], self.points[i] + self.max_distance / self.shape])
-            
     def limits(self,
                i):
         return self.limit[i, :]
@@ -162,7 +161,7 @@ class Wendland(Compact_RBF):
         else:
             return 0.
 
-class MLS:
+class MLS(Compact_RBF):
     def __init__(self,
                  num_polynomials,
                  num_other_points,
@@ -173,26 +172,32 @@ class MLS:
         self.num_points = len(points)
         self.dx = points[1] - points[0]
         self.bandwidth = 1. / (self.dx * (self.num_other_points + 0.1))
+        Compact_RBF.__init__(self,
+                             self.dx,
+                             self.points,
+                             1. / self.bandwidth)
     def weightd(self,
-               d):
-        if d <= 1:
-            return np.power(1. - d, 3) * (1. + 3. * d)
+                d):
+        d1 = np.abs(d)
+        if d1 <= 1:
+            return np.power(1. - d1, 3) * (1. + 3. * d1)
         else:
             return 0.
     def dweightd(self,
                  d):
-        if d <= 1:
-            return -12 * self.bandwidth * np.power(d - 1, 2) * d
+        d1 = np.abs(d)
+        if d1 <= 1:
+            return -12 * np.sign(d) * self.bandwidth * np.power(d1 - 1, 2) * d1
         else:
             return 0.
     def weight(self,
                i,
                x):
-        return self.weightd(self.bandwidth * np.abs(x - self.points[i]))
+        return self.weightd(self.bandwidth * (x - self.points[i]))
     def dweight(self,
                 i,
                 x):
-        return self.dweightd(self.bandwidth * np.abs(x - self.points[i]))
+        return self.dweightd(self.bandwidth * (x - self.points[i]))
     def get_points(self,
                    x):
         nearest_point = int(np.round(x / self.dx))
@@ -249,13 +254,13 @@ class MLS:
     def bvec(self,
              i,
              x):
-        return self.poly(points[i]) * self.weight(i,
-                                                  x)
+        return self.poly(self.points[i]) * self.weight(i,
+                                                       x)
     def dbvec(self,
               i,
               x):
-        return self.poly(points[i]) * self.dweight(i,
-                                                   x)
+        return self.poly(self.points[i]) * self.dweight(i,
+                                                        x)
         
     def val(self,
             i,
@@ -335,7 +340,6 @@ if __name__ == '__main__':
     desc = ["mls"]
     col = ['#66c2a5','#fc8d62','#8da0cb','#e78ac3','#a6d854', 'k']
     plot_points = np.linspace(0, 1, 200)
-    plt.ylim(0, 2)
     for i, func in enumerate(funcs):
         for j, point in enumerate(points):
             vals = np.array([func.val(j, x) for x in plot_points])
@@ -352,6 +356,8 @@ if __name__ == '__main__':
                 plt.plot(plot_points, dvals, color=col[i])
     plt.figure(0)
     plt.legend()
+    plt.tight_layout()
     plt.figure(1)
     plt.legend()
+    plt.tight_layout()
     plt.show()

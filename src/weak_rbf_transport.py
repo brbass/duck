@@ -37,6 +37,12 @@ def weak_transport(basis_str,
     elif basis_str == "wendland":
         basis = Wendland(ep_basis,
                          points)
+    elif basis_str == "mls":
+        polyord = 2
+        num_neighbors = 3
+        basis = MLS(polyord,
+                    num_neighbors,
+                    points)
     else:
         print("basis not found: " + basis_str)
         return
@@ -59,6 +65,12 @@ def weak_transport(basis_str,
         weight = SUPG_Gaussian(ep_weight,
                                points,
                                sigma_t)
+    elif weight_str == "mls":
+        polyord = 2
+        num_neighbors = 3
+        weight = MLS(polyord,
+                    num_neighbors,
+                    points)
     else:
         print("weight not found: " + weight_str)
         return
@@ -88,6 +100,7 @@ def weak_transport(basis_str,
         t2, abserr = spi.quad(integrand, limits[0], limits[1])
         b[j] = t1 + t2
         
+    print(a)
     alpha = spl.solve(a, b)
 
     psi = np.zeros(num_points)

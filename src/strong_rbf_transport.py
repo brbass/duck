@@ -29,6 +29,12 @@ def strong_transport(basis_str,
     elif basis_str == "wendland":
         basis = Wendland(ep_basis,
                          points)
+    elif basis_str == "mls":
+        polyord = 2
+        num_neighbors = 3
+        basis = MLS(polyord,
+                    num_neighbors,
+                    points)
     else:
         print("basis not found: " + basis_str)
         return
