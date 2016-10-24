@@ -64,21 +64,21 @@ class SUPG_Gaussian(Compact_RBF):
                              3.)
         self.compact_gaussian = Compact_Gaussian(shape,
                                                  points)
-        self.delta_sigma_t = 0.1
         self.sigma_t = sigma_t
-        
+        self.tau = 0.5
+
     def val(self,
             i,
             x):
         return self.compact_gaussian.val(i,
-                                         x) + self.compact_gaussian.dval(i,
-                                                                         x) / (self.sigma_t.val(self.points[i]) + self.delta_sigma_t)
+                                         x) + self.tau * self.compact_gaussian.dval(i,
+                                                                                    x)
     def dval(self,
              i,
              x):
         return self.compact_gaussian.dval(i,
-                                          x) + self.compact_gaussian.ddval(i,
-                                                                           x) / (self.sigma_t.val(self.points[i]) + self.delta_sigma_t)
+                                          x) + self.tau * self.compact_gaussian.ddval(i,
+                                                                                      x)
 
 class Compact_Gaussian(Compact_RBF):
     def __init__(self,

@@ -14,11 +14,13 @@ def get_offset(points,
     # return 0.3 * ga * (points[1] - points[0])
     # return 0.5 * np.array([(points[1] - points[0]) / (sigma_t.val(point) + 0.5) for point in points])
     return 0.0 * np.array([ep_weight / (sigma_t.val(point) + 0.5) for point in points])
-def weak_transport(basis_str,
+def supg_transport(basis_str,
                    weight_str,
                    num_points,
                    ep_basis,
                    ep_weight,
+                   tau1,
+                   tau2,
                    sigma1,
                    sigma2,
                    source1,
@@ -32,6 +34,8 @@ def weak_transport(basis_str,
     # Set cross section and source
     sigma_t = Cross_Section(sigma1,
                             sigma2)
+    tau = Cross_Section(tau1,
+                        tau2)
     source = Cross_Section(source1,
                            source2)
     offset_distance = get_offset(points,
@@ -73,16 +77,6 @@ def weak_transport(basis_str,
     elif weight_str == "compact_gaussian":
         weight = Compact_Gaussian(ep_weight,
                                   points)
-    elif weight_str == "supg_gaussian":
-        weight = SUPG_Gaussian(ep_weight,
-                               points,
-                               sigma_t)
-    elif weight_str == "offset_gaussian":
-        weight = Compact_Gaussian(ep_weight,
-                                  points - offset_distance)
-    elif weight_str == "offset_multiquadric":
-        weight = Multiquadric(ep_weight,
-                              points - offset_distance)
     elif weight_str == "mls":
         polyord = 2
         num_neighbors = 3
@@ -101,7 +95,14 @@ def weak_transport(basis_str,
     for i in range(num_points):
         for j in range(num_points):
             def integrand(x):
-                return (-mu * weight.dval(j, x) + sigma_t.val(x) * weight.val(j, x)) * basis.val(i, x)
+                bas = basis.val(i, x)
+                dbas = basis.dval(i, x)
+                wei = weight.val(j, x)
+                dwei = weight.dval(j, x)
+                ta = tau.val(x)
+                st = sigma_t.val(x)
+                return mu * (-bas + mu * ta * dbas) * dwei + st * bas * (wei + ta * mu * dwei)
+            
             limits = weight.limits(j)
             
             t1 = mu * basis.val(i, points[-1]) * weight.val(j, points[-1])
@@ -112,7 +113,7 @@ def weak_transport(basis_str,
     for j in range(num_points):
         limits = weight.limits(j)
         def integrand(x):
-            return weight.val(j, x) * source.val(x)
+            return (weight.val(j, x) + tau.val(j) * weight.dval(j, x)) * source.val(x)
 
         t1 = mu * psi0 * weight.val(j, points[0])
         t2, abserr = spi.quad(integrand, limits[0], limits[1])
@@ -138,8 +139,8 @@ def weak_transport(basis_str,
     return points, analytic, psi, err
 
 if __name__ == '__main__':
-    if len(sys.argv) != 11:
-        print("weak_rbf_transport [basis weight num_points ep_basis ep_weight sigma1 sigma2 source1 source2 psi0]")
+    if len(sys.argv) != 13:
+        print("supg_rbf_transport [basis weight num_points ep_basis ep_weight tau1 tau2 sigma1 sigma2 source1 source2 psi0]")
         sys.exit()
     i = itertools.count(1)
     basis = str(sys.argv[next(i)])
@@ -147,17 +148,21 @@ if __name__ == '__main__':
     num_points = int(sys.argv[next(i)])
     ep_basis = float(sys.argv[next(i)])
     ep_weight = float(sys.argv[next(i)])
+    tau1 = float(sys.argv[next(i)])
+    tau2 = float(sys.argv[next(i)])
     sigma1 = float(sys.argv[next(i)])
     sigma2 = float(sys.argv[next(i)])
     source1 = float(sys.argv[next(i)])
     source2 = float(sys.argv[next(i)])
     psi0 = float(sys.argv[next(i)])
 
-    points, analytic, psi, err = weak_transport(basis,
+    points, analytic, psi, err = supg_transport(basis,
                                                 weight,
                                                 num_points,
                                                 ep_basis,
                                                 ep_weight,
+                                                tau1,
+                                                tau2,
                                                 sigma1,
                                                 sigma2,
                                                 source1,

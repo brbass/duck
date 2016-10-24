@@ -31,7 +31,7 @@ def strong_transport(basis_str,
                          points)
     elif basis_str == "mls":
         polyord = 2
-        num_neighbors = 3
+        num_neighbors = 4
         basis = MLS(polyord,
                     num_neighbors,
                     points)
