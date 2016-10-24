@@ -73,10 +73,6 @@ def weak_transport(basis_str,
     elif weight_str == "compact_gaussian":
         weight = Compact_Gaussian(ep_weight,
                                   points)
-    elif weight_str == "supg_gaussian":
-        weight = SUPG_Gaussian(ep_weight,
-                               points,
-                               sigma_t)
     elif weight_str == "offset_gaussian":
         weight = Compact_Gaussian(ep_weight,
                                   points - offset_distance)

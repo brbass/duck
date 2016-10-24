@@ -53,33 +53,6 @@ class Multiquadric(RBF):
         d = x - self.points[i]
         return np.power(self.shape, 2) * d / np.sqrt(1 + np.power(d * self.shape, 2))
 
-class SUPG_Gaussian(Compact_RBF):
-    def __init__(self,
-                 shape,
-                 points,
-                 sigma_t):
-        Compact_RBF.__init__(self,
-                             shape,
-                             points,
-                             3.)
-        self.compact_gaussian = Compact_Gaussian(shape,
-                                                 points)
-        self.sigma_t = sigma_t
-        self.tau = 0.5
-
-    def val(self,
-            i,
-            x):
-        return self.compact_gaussian.val(i,
-                                         x) + self.tau * self.compact_gaussian.dval(i,
-                                                                                    x)
-    def dval(self,
-             i,
-             x):
-        return self.compact_gaussian.dval(i,
-                                          x) + self.tau * self.compact_gaussian.ddval(i,
-                                                                                      x)
-
 class Compact_Gaussian(Compact_RBF):
     def __init__(self,
                  shape,
