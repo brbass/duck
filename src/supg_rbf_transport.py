@@ -5,6 +5,7 @@ import scipy.linalg as spl
 import scipy.integrate as spi
 import sys
 import itertools
+from textwrap import wrap
 
 def get_offset(points,
                sigma_t,
@@ -16,6 +17,7 @@ def get_offset(points,
     return 0.0 * np.array([ep_weight / (sigma_t.val(point) + 0.5) for point in points])
 def supg_transport(basis_str,
                    weight_str,
+                   cs_method_str,
                    num_points,
                    ep_basis,
                    ep_weight,
@@ -139,12 +141,13 @@ def supg_transport(basis_str,
     return points, analytic, psi, err
 
 if __name__ == '__main__':
-    if len(sys.argv) != 13:
-        print("supg_rbf_transport [basis weight num_points ep_basis ep_weight tau1 tau2 sigma1 sigma2 source1 source2 psi0]")
+    if len(sys.argv) != 14:
+        print("supg_rbf_transport [basis weight cs_method num_points ep_basis ep_weight tau1 tau2 sigma1 sigma2 source1 source2 psi0]")
         sys.exit()
     i = itertools.count(1)
     basis = str(sys.argv[next(i)])
     weight = str(sys.argv[next(i)])
+    cs_method = str(sys.argv[next(i)])
     num_points = int(sys.argv[next(i)])
     ep_basis = float(sys.argv[next(i)])
     ep_weight = float(sys.argv[next(i)])
@@ -158,6 +161,7 @@ if __name__ == '__main__':
 
     points, analytic, psi, err = supg_transport(basis,
                                                 weight,
+                                                cs_method,
                                                 num_points,
                                                 ep_basis,
                                                 ep_weight,
@@ -168,7 +172,13 @@ if __name__ == '__main__':
                                                 source1,
                                                 source2,
                                                 psi0)
+    l2err = np.divide(np.sqrt(np.sum(np.power(err, 2))), 1. * len(err))
+    
     if True:
+        description = ""
+        for arg in sys.argv:
+            description += arg + " "
+        description += "\tl2err: {:5e}".format(l2err)
         col = ['#66c2a5','#fc8d62','#8da0cb','#e78ac3','#a6d854']
         fig, ax1 = plt.subplots()
         ax2 = ax1.twinx()
@@ -182,5 +192,6 @@ if __name__ == '__main__':
         lns = ln1+ln2+ln3
         labs = [l.get_label() for l in lns]
         ax1.legend(lns, labs)
+        plt.title("\n".join(wrap(description, 60)))
         plt.show()
     

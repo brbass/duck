@@ -5,6 +5,7 @@ import scipy.linalg as spl
 import scipy.integrate as spi
 import sys
 import itertools
+from textwrap import wrap
 
 def get_offset(points,
                sigma_t,
@@ -159,7 +160,13 @@ if __name__ == '__main__':
                                                 source1,
                                                 source2,
                                                 psi0)
+    l2err = np.divide(np.sqrt(np.sum(np.power(err, 2))), 1. * len(err))
+
     if True:
+        description = ""
+        for arg in sys.argv:
+            description += arg + " "
+        description += "\tl2err: {:5e}".format(l2err)
         col = ['#66c2a5','#fc8d62','#8da0cb','#e78ac3','#a6d854']
         fig, ax1 = plt.subplots()
         ax2 = ax1.twinx()
@@ -173,5 +180,6 @@ if __name__ == '__main__':
         lns = ln1+ln2+ln3
         labs = [l.get_label() for l in lns]
         ax1.legend(lns, labs)
+        plt.title("\n".join(wrap(description, 60)))
         plt.show()
     
