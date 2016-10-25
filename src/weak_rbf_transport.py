@@ -131,8 +131,9 @@ def weak_transport(basis_str,
     for i in range(num_points):
         analytic[i] = solution.val(points[i])
     err = psi - analytic
+    l2err = np.divide(np.sqrt(np.sum(np.power(err, 2))), 1. * len(err))
 
-    return points, analytic, psi, err
+    return points, analytic, psi, err, l2err
 
 if __name__ == '__main__':
     if len(sys.argv) != 11:
@@ -150,23 +151,22 @@ if __name__ == '__main__':
     source2 = float(sys.argv[next(i)])
     psi0 = float(sys.argv[next(i)])
 
-    points, analytic, psi, err = weak_transport(basis,
-                                                weight,
-                                                num_points,
-                                                ep_basis,
-                                                ep_weight,
-                                                sigma1,
-                                                sigma2,
-                                                source1,
-                                                source2,
-                                                psi0)
-    l2err = np.divide(np.sqrt(np.sum(np.power(err, 2))), 1. * len(err))
+    points, analytic, psi, err, l2err = weak_transport(basis,
+                                                       weight,
+                                                       num_points,
+                                                       ep_basis,
+                                                       ep_weight,
+                                                       sigma1,
+                                                       sigma2,
+                                                       source1,
+                                                       source2,
+                                                       psi0)
 
     if True:
         description = ""
         for arg in sys.argv:
             description += arg + " "
-        description += "\tl2err: {:5e}".format(l2err)
+        description += "l2err={:5e}".format(l2err)
         col = ['#66c2a5','#fc8d62','#8da0cb','#e78ac3','#a6d854']
         fig, ax1 = plt.subplots()
         ax2 = ax1.twinx()
@@ -181,5 +181,4 @@ if __name__ == '__main__':
         labs = [l.get_label() for l in lns]
         ax1.legend(lns, labs)
         plt.title("\n".join(wrap(description, 60)))
-        plt.show()
-    
+        plt.savefig("../figs/{}.pdf".format(description))
