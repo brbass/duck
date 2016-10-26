@@ -8,15 +8,6 @@ import itertools
 from textwrap import wrap
 from enum import Enum
 
-def get_offset(points,
-               sigma_t,
-               ep_weight):
-    # pe = np.array([sigma_t.val(point) * 2 * (points[1] - points[0]) for point in points])
-    # ga = np.cosh(pe) / np.sinh(pe) - 1. / pe
-    # return 0.3 * ga * (points[1] - points[0])
-    # return 0.5 * np.array([(points[1] - points[0]) / (sigma_t.val(point) + 0.5) for point in points])
-    return 0.0 * np.array([ep_weight / (sigma_t.val(point) + 0.5) for point in points])
-
 class CS_Method(Enum):
     full = 0
     flux = 1
@@ -54,18 +45,16 @@ def supg_transport(basis_str,
     # Initialize geometry
     length = 2
     points = np.linspace(0, length, num_points)
+    dx = points[1] - points[0]
     mu = 1
     
     # Set cross section and source
     sigma_t = Cross_Section(sigma1,
                             sigma2)
-    tau = Cross_Section(tau1,
-                        tau2)
+    tau = Cross_Section(tau1 * dx,
+                        tau2 * dx)
     source = Cross_Section(source1,
                            source2)
-    offset_distance = get_offset(points,
-                                 sigma_t,
-                                 ep_weight)
     
     # Set basis and weight functions
     if basis_str == "multiquadric":
@@ -116,6 +105,10 @@ def supg_transport(basis_str,
     solution = Solution(sigma_t,
                         source,
                         psi0)
+
+    # Set the SUPG parameter
+    tau = Cross_Section(tau1 / weight.shape,
+                        tau2 / weight.shape)
     
     # Calculate sigma_t (if applicable)
     sigma_t_vals = np.zeros(num_points)
@@ -234,7 +227,7 @@ def supg_transport(basis_str,
 
 if __name__ == '__main__':
     if len(sys.argv) != 15:
-        print("supg_rbf_transport [basis weight cs_method num_points ep_basis ep_weight tau1 tau2 sigma1 sigma2 source1 source2 psi0]")
+        print("supg_rbf_transport [basis weight cs_method fixed_quadrature num_points ep_basis ep_weight tau1 tau2 sigma1 sigma2 source1 source2 psi0]")
         sys.exit()
     i = itertools.count(1)
     basis = str(sys.argv[next(i)])

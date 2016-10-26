@@ -145,6 +145,7 @@ class MLS(Compact_RBF):
         self.num_points = len(points)
         self.dx = points[1] - points[0]
         self.bandwidth = 1. / (self.dx * (self.num_other_points + 0.1))
+        self.shape = self.bandwidth
         Compact_RBF.__init__(self,
                              self.dx,
                              self.points,
