@@ -7,20 +7,20 @@ from strong_rbf_transport import strong_transport
 from dfem_transport import dfem_transport
 
 def compare():
-    basis = "multiquadric"
+    basis = "linear_mls"
     weight = "compact_gaussian"
     num_points_vals = np.array([2**i for i in range(3, 10)])
     num_vals = len(num_points_vals)
-    ep_basis = 0.5
+    ep_basis = 3
     ep_weight = 1.0
-    tau1 = 0.5
-    tau2 = 0.5
+    tau1 = 1.0
+    tau2 = 1.0
     sigma1 = 1.0
     sigma2 = 10.0
     source1 = 1.0
     source2 = 0.0
     psi0 = 0.0
-    fixed_quadrature = False
+    quadrature_order = 32
     plot_results = True
     
     run_problem = True
@@ -28,8 +28,8 @@ def compare():
     num_cases = len(cases)
     err = np.zeros((num_vals, num_cases))
     
-    description = "{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format(basis, weight, ep_basis, ep_weight, tau1, tau2, sigma1, sigma2, source1, source2, psi0)
-    filename = "../out/{}.txt".format(description)
+    description = "{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format(basis, weight, quadrature_order, ep_basis, ep_weight, tau1, tau2, sigma1, sigma2, source1, source2, psi0)
+    filename = "../out/error_{}.txt".format(description)
     
     if run_problem:
         for i, num_points in enumerate(num_points_vals):
@@ -58,6 +58,7 @@ def compare():
                     temp1, temp2, temp3, temp4, l2err = supg_transport(basis,
                                                                        weight,
                                                                        CS_Method.full,
+                                                                       quadrature_order,
                                                                        num_points,
                                                                        ep_basis,
                                                                        ep_weight,
@@ -68,13 +69,13 @@ def compare():
                                                                        source1,
                                                                        source2,
                                                                        psi0,
-                                                                       fixed_quadrature,
                                                                        plot_results)
                     err[i, j] = l2err
                 elif case == 'supg_full':
                     temp1, temp2, temp3, temp4, l2err = supg_transport(basis,
                                                                        weight,
                                                                        CS_Method.full,
+                                                                       quadrature_order,
                                                                        num_points,
                                                                        ep_basis,
                                                                        ep_weight,
@@ -85,13 +86,13 @@ def compare():
                                                                        source1,
                                                                        source2,
                                                                        psi0,
-                                                                       fixed_quadrature,
                                                                        plot_results)
                     err[i, j] = l2err
                 elif case == 'supg_flux':
                     temp1, temp2, temp3, temp4, l2err = supg_transport(basis,
                                                                        weight,
                                                                        CS_Method.flux,
+                                                                       quadrature_order,
                                                                        num_points,
                                                                        ep_basis,
                                                                        ep_weight,
@@ -102,13 +103,13 @@ def compare():
                                                                        source1,
                                                                        source2,
                                                                        psi0,
-                                                                       fixed_quadrature,
                                                                        plot_results)
                     err[i, j] = l2err
                 elif case == 'supg_weight':
                     temp1, temp2, temp3, temp4, l2err = supg_transport(basis,
                                                                        weight,
                                                                        CS_Method.weight,
+                                                                       quadrature_order,
                                                                        num_points,
                                                                        ep_basis,
                                                                        ep_weight,
@@ -119,13 +120,13 @@ def compare():
                                                                        source1,
                                                                        source2,
                                                                        psi0,
-                                                                       fixed_quadrature,
                                                                        plot_results)
                     err[i, j] = l2err
                 elif case == 'supg_point':
                     temp1, temp2, temp3, temp4, l2err = supg_transport(basis,
                                                                        weight,
                                                                        CS_Method.point,
+                                                                       quadrature_order,
                                                                        num_points,
                                                                        ep_basis,
                                                                        ep_weight,
@@ -136,7 +137,6 @@ def compare():
                                                                        source1,
                                                                        source2,
                                                                        psi0,
-                                                                       fixed_quadrature,
                                                                        plot_results)
                     err[i, j] = l2err
                 else:
@@ -154,7 +154,7 @@ def compare():
     plt.ylabel(r"$L_2$ error")
     plt.legend(fontsize="medium")
     plt.grid(True)
-    plt.savefig("../figs/{}.pdf".format(description))
+    plt.savefig("../figs/error_{}.pdf".format(description))
     plt.close()
 
 if __name__ == '__main__':

@@ -24,10 +24,28 @@ def vfunc(xvals, func):
 #     for i, x in enumerate(xvals):
 #         res[i] = func(x)
 #     return res
+
+def get_limits(i,
+               j,
+               basis,
+               weight):
+    baslim = basis.limits(i)
+    weilim = weight.limits(j)
+    newlim = np.zeros(2)
     
+    if baslim[1] < weilim[0] or baslim[0] > weilim[1]:
+        return False, newlim
+    newlim[0] = np.maximum(baslim[0], weilim[0])
+    newlim[1] = np.minimum(baslim[1], weilim[1])
+
+    return True, newlim
+    
+    
+
 def supg_transport(basis_str,
                    weight_str,
                    cs_method,
+                   quadrature_order,
                    num_points,
                    ep_basis,
                    ep_weight,
@@ -38,12 +56,16 @@ def supg_transport(basis_str,
                    source1,
                    source2,
                    psi0,
-                   fixed_quadrature = True,
                    plot_results = False):
+    if quadrature_order == 0:
+        fixed_quadrature = False
+    else:
+        fixed_quadrature = True
     # Get problem description
     description = "supg_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format(basis_str,
                                                                           weight_str,
                                                                           cs_method.name,
+                                                                          quadrature_order,
                                                                           num_points,
                                                                           ep_basis,
                                                                           ep_weight,
@@ -53,11 +75,7 @@ def supg_transport(basis_str,
                                                                           sigma2,
                                                                           source1,
                                                                           source2,
-                                                                          psi0,
-                                                                          fixed_quadrature)
-    
-    # Integration order
-    int_ord = 64
+                                                                          psi0)
     
     # Initialize geometry
     length = 2
@@ -159,8 +177,8 @@ def supg_transport(basis_str,
                 sol = solution.val(x)
                 return (wei + ta * mu * dwei) * sol
             if fixed_quadrature:
-                int1, err = spi.fixed_quad(vfunc, limits[0], limits[1], args=[integrand1], n=int_ord)
-                int2, err = spi.fixed_quad(vfunc, limits[0], limits[1], args=[integrand2], n=int_ord)
+                int1, err = spi.fixed_quad(vfunc, limits[0], limits[1], args=[integrand1], n=quadrature_order)
+                int2, err = spi.fixed_quad(vfunc, limits[0], limits[1], args=[integrand2], n=quadrature_order)
             else:
                 int1, err = spi.quad(integrand1, limits[0], limits[1])
                 int2, err = spi.quad(integrand2, limits[0], limits[1])
@@ -179,8 +197,8 @@ def supg_transport(basis_str,
                 dwei = weight.dval(i, x)
                 return wei + ta * mu * dwei
             if fixed_quadrature:
-                int1, err = spi.fixed_quad(vfunc, limits[0], limits[1], args=[integrand1], n=int_ord)
-                int2, err = spi.fixed_quad(vfunc, limits[0], limits[1], args=[integrand2], n=int_ord)
+                int1, err = spi.fixed_quad(vfunc, limits[0], limits[1], args=[integrand1], n=quadrature_order)
+                int2, err = spi.fixed_quad(vfunc, limits[0], limits[1], args=[integrand2], n=quadrature_order)
             else:
                 int1, err = spi.quad(integrand1, limits[0], limits[1])
                 int2, err = spi.quad(integrand2, limits[0], limits[1])
@@ -188,7 +206,7 @@ def supg_transport(basis_str,
     elif cs_method is CS_Method.point:
         for i in range(num_points):
             sigma_t_vals[i] = sigma_t.val(points[i])
-
+            
     # Initialize arrays
     a = np.zeros((num_points, num_points), dtype=float)
     b = np.zeros((num_points), dtype=float)
@@ -196,31 +214,37 @@ def supg_transport(basis_str,
     # Set matrix
     for i in range(num_points):
         for j in range(num_points):
-            limits = weight.limits(j)
-            ta = tau_vals[j]
-            if cs_method is CS_Method.full:
-                def integrand(x):
-                    bas = basis.val(i, x)
-                    dbas = basis.dval(i, x)
-                    wei = weight.val(j, x)
-                    dwei = weight.dval(j, x)
-                    st = sigma_t.val(x)
-                    return mu * (-bas + mu * ta * dbas) * dwei + st * bas * (wei + ta * mu * dwei)
+            nonzero, limits = get_limits(i,
+                                         j,
+                                         basis,
+                                         weight)
+            if nonzero:
+                ta = tau_vals[j]
+                if cs_method is CS_Method.full:
+                    def integrand(x):
+                        bas = basis.val(i, x)
+                        dbas = basis.dval(i, x)
+                        wei = weight.val(j, x)
+                        dwei = weight.dval(j, x)
+                        st = sigma_t.val(x)
+                        return mu * (-bas + mu * ta * dbas) * dwei + st * bas * (wei + ta * mu * dwei)
+                else:
+                    def integrand(x):
+                        bas = basis.val(i, x)
+                        dbas = basis.dval(i, x)
+                        wei = weight.val(j, x)
+                        dwei = weight.dval(j, x)
+                        st = sigma_t_vals[j]
+                        return mu * (-bas + mu * ta * dbas) * dwei + st * bas * (wei + ta * mu * dwei)
+                t1 = mu * basis.val(i, points[-1]) * weight.val(j, points[-1])
+                if fixed_quadrature:
+                    t2, err = spi.fixed_quad(vfunc, limits[0], limits[1], args=[integrand], n=quadrature_order)
+                else:
+                    t2, abserr = spi.quad(integrand, limits[0], limits[1])
+                a[j, i] = t1 + t2
             else:
-                def integrand(x):
-                    bas = basis.val(i, x)
-                    dbas = basis.dval(i, x)
-                    wei = weight.val(j, x)
-                    dwei = weight.dval(j, x)
-                    st = sigma_t_vals[j]
-                    return mu * (-bas + mu * ta * dbas) * dwei + st * bas * (wei + ta * mu * dwei)
-            t1 = mu * basis.val(i, points[-1]) * weight.val(j, points[-1])
-            if fixed_quadrature:
-                t2, err = spi.fixed_quad(vfunc, limits[0], limits[1], args=[integrand], n=int_ord)
-            else:
-                t2, abserr = spi.quad(integrand, limits[0], limits[1])
-            a[j, i] = t1 + t2
-            
+                a[j, i] = 0
+                
     # Set RHS
     for j in range(num_points):
         limits = weight.limits(j)
@@ -229,14 +253,14 @@ def supg_transport(basis_str,
 
         t1 = mu * psi0 * weight.val(j, points[0])
         if fixed_quadrature:
-            t2, err = spi.fixed_quad(vfunc, limits[0], limits[1], n=int_ord, args=[integrand])
+            t2, err = spi.fixed_quad(vfunc, limits[0], limits[1], n=quadrature_order, args=[integrand])
         else:
             t2, abserr = spi.quad(integrand, limits[0], limits[1])
         b[j] = t1 + t2
 
     # Solve equation for coefficients
     alpha = spl.solve(a, b)
-
+    
     # Calculate psi based on coefficients
     psi = np.zeros(num_points)
     for i in range(num_points):
@@ -244,7 +268,7 @@ def supg_transport(basis_str,
         for j in range(num_points):
             val += alpha[j] * basis.val(j, points[i])
         psi[i] = val
-
+        
     # Get analytic solution
     analytic = np.zeros(num_points)
     for i in range(num_points):
@@ -282,7 +306,7 @@ if __name__ == '__main__':
     basis = str(sys.argv[next(i)])
     weight = str(sys.argv[next(i)])
     cs_method = str(sys.argv[next(i)])
-    fixed_quadrature = bool(int(sys.argv[next(i)]))
+    quadrature_order = int(sys.argv[next(i)])
     num_points = int(sys.argv[next(i)])
     ep_basis = float(sys.argv[next(i)])
     ep_weight = float(sys.argv[next(i)])
@@ -297,6 +321,7 @@ if __name__ == '__main__':
     points, analytic, psi, err, l2err = supg_transport(basis,
                                                        weight,
                                                        CS_Method[cs_method],
+                                                       quadrature_order,
                                                        num_points,
                                                        ep_basis,
                                                        ep_weight,
@@ -307,6 +332,4 @@ if __name__ == '__main__':
                                                        source1,
                                                        source2,
                                                        psi0,
-                                                       fixed_quadrature,
                                                        True)
-    

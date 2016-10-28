@@ -41,12 +41,19 @@ def strong_transport(basis_str,
     elif basis_str == "wendland":
         basis = Wendland(ep_basis,
                          points)
+    elif basis_str == "compact_gaussian":
+        basis = Compact_Gaussian(ep_basis,
+                                 points)
     elif basis_str == "mls":
         polyord = 2
         num_neighbors = 4
         basis = MLS(polyord,
                     num_neighbors,
                     points)
+    elif basis_str == "linear_mls":
+        num_neighbors = int(ep_basis)
+        basis = Linear_MLS(num_neighbors,
+                           points)
     else:
         print("basis not found: " + basis_str)
         return
