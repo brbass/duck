@@ -38,7 +38,24 @@ def supg_transport(basis_str,
                    source1,
                    source2,
                    psi0,
-                   fixed_quadrature = True):
+                   fixed_quadrature = True,
+                   plot_results = False):
+    # Get problem description
+    description = "supg_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}_{}".format(basis_str,
+                                                                          weight_str,
+                                                                          cs_method.name,
+                                                                          num_points,
+                                                                          ep_basis,
+                                                                          ep_weight,
+                                                                          tau1,
+                                                                          tau2,
+                                                                          sigma1,
+                                                                          sigma2,
+                                                                          source1,
+                                                                          source2,
+                                                                          psi0,
+                                                                          fixed_quadrature)
+    
     # Integration order
     int_ord = 16
     
@@ -51,8 +68,6 @@ def supg_transport(basis_str,
     # Set cross section and source
     sigma_t = Cross_Section(sigma1,
                             sigma2)
-    tau = Cross_Section(tau1 * dx,
-                        tau2 * dx)
     source = Cross_Section(source1,
                            source2)
     
@@ -109,6 +124,9 @@ def supg_transport(basis_str,
     # Set the SUPG parameter
     tau = Cross_Section(tau1 / weight.shape,
                         tau2 / weight.shape)
+    tau_vals = np.zeros(num_points)
+    for i in range(num_points):
+        tau_vals[i] = tau.val(points[i])
     
     # Calculate sigma_t (if applicable)
     sigma_t_vals = np.zeros(num_points)
@@ -117,17 +135,16 @@ def supg_transport(basis_str,
     elif cs_method is CS_Method.flux:
         for i in range(num_points):
             limits = weight.limits(i)
+            ta = tau_vals[i]
             def integrand1(x):
                 wei = weight.val(i, x)
                 dwei = weight.dval(i, x)
-                ta = tau.val(x)
                 st = sigma_t.val(x)
                 sol = solution.val(x)
                 return (wei + ta * mu * dwei) * st * sol
             def integrand2(x):
                 wei = weight.val(i, x)
                 dwei = weight.dval(i, x)
-                ta = tau.val(x)
                 sol = solution.val(x)
                 return (wei + ta * mu * dwei) * sol
             if fixed_quadrature:
@@ -140,16 +157,15 @@ def supg_transport(basis_str,
     elif cs_method is CS_Method.weight:
         for i in range(num_points):
             limits = weight.limits(i)
+            ta = tau_vals[i]
             def integrand1(x):
                 wei = weight.val(i, x)
                 dwei = weight.dval(i, x)
-                ta = tau.val(x)
                 st = sigma_t.val(x)
                 return (wei + ta * mu * dwei) * st
             def integrand2(x):
                 wei = weight.val(i, x)
                 dwei = weight.dval(i, x)
-                ta = tau.val(x)
                 return wei + ta * mu * dwei
             if fixed_quadrature:
                 int1, err = spi.fixed_quad(vfunc, limits[0], limits[1], args=[integrand1], n=int_ord)
@@ -171,12 +187,12 @@ def supg_transport(basis_str,
         for j in range(num_points):
             limits = weight.limits(j)
             if cs_method is CS_Method.full:
+                ta = tau_vals[j]
                 def integrand(x):
                     bas = basis.val(i, x)
                     dbas = basis.dval(i, x)
                     wei = weight.val(j, x)
                     dwei = weight.dval(j, x)
-                    ta = tau.val(x)
                     st = sigma_t.val(x)
                     return mu * (-bas + mu * ta * dbas) * dwei + st * bas * (wei + ta * mu * dwei)
             else:
@@ -185,7 +201,6 @@ def supg_transport(basis_str,
                     dbas = basis.dval(i, x)
                     wei = weight.val(j, x)
                     dwei = weight.dval(j, x)
-                    ta = tau.val(x)
                     st = sigma_t_vals[j]
                     return mu * (-bas + mu * ta * dbas) * dwei + st * bas * (wei + ta * mu * dwei)
             t1 = mu * basis.val(i, points[-1]) * weight.val(j, points[-1])
@@ -199,7 +214,7 @@ def supg_transport(basis_str,
     for j in range(num_points):
         limits = weight.limits(j)
         def integrand(x):
-            return (weight.val(j, x) + tau.val(j) * weight.dval(j, x)) * source.val(x)
+            return (weight.val(j, x) + tau_vals[j] * weight.dval(j, x)) * source.val(x)
 
         t1 = mu * psi0 * weight.val(j, points[0])
         if fixed_quadrature:
@@ -223,6 +238,25 @@ def supg_transport(basis_str,
     err = psi - analytic
     l2err = np.divide(np.sqrt(np.sum(np.power(err, 2))), 1. * len(err))
 
+    if plot_results:
+        description += "_l2err={:5e}".format(l2err)
+        col = ['#66c2a5','#fc8d62','#8da0cb','#e78ac3','#a6d854']
+        fig, ax1 = plt.subplots()
+        ax2 = ax1.twinx()
+        ln1 = ax1.plot(points, analytic, label="analytic", color=col[0])
+        ln2 = ax1.plot(points, psi, label="numeric", color=col[1])
+        ax1.set_xlabel("x")
+        ax1.set_ylabel(r"$\psi(x)$")
+        ax1.grid()
+        ln3 = ax2.plot(points, err, label="error", color=col[2])
+        ax2.set_ylabel(r"$err(\psi(x))$")
+        lns = ln1+ln2+ln3
+        labs = [l.get_label() for l in lns]
+        ax1.legend(lns, labs)
+        plt.title("\n".join(wrap(description, 60)))
+        plt.savefig("../figs/{}.pdf".format(description))
+        plt.close()
+        
     return points, analytic, psi, err, l2err
 
 if __name__ == '__main__':
@@ -245,7 +279,6 @@ if __name__ == '__main__':
     source2 = float(sys.argv[next(i)])
     psi0 = float(sys.argv[next(i)])
     
-    
     points, analytic, psi, err, l2err = supg_transport(basis,
                                                        weight,
                                                        CS_Method[cs_method],
@@ -259,26 +292,6 @@ if __name__ == '__main__':
                                                        source1,
                                                        source2,
                                                        psi0,
-                                                       fixed_quadrature)
-    
-    if True:
-        description = ""
-        for arg in sys.argv:
-            description += arg + " "
-        description += "l2err={:5e}".format(l2err)
-        col = ['#66c2a5','#fc8d62','#8da0cb','#e78ac3','#a6d854']
-        fig, ax1 = plt.subplots()
-        ax2 = ax1.twinx()
-        ln1 = ax1.plot(points, analytic, label="analytic", color=col[0])
-        ln2 = ax1.plot(points, psi, label="numeric", color=col[1])
-        ax1.set_xlabel("x")
-        ax1.set_ylabel(r"$\psi(x)$")
-        ax1.grid()
-        ln3 = ax2.plot(points, err, label="error", color=col[2])
-        ax2.set_ylabel(r"$err(\psi(x))$")
-        lns = ln1+ln2+ln3
-        labs = [l.get_label() for l in lns]
-        ax1.legend(lns, labs)
-        plt.title("\n".join(wrap(description, 60)))
-        plt.savefig("../figs/{}.pdf".format(description))
+                                                       fixed_quadrature,
+                                                       True)
     
