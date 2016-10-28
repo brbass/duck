@@ -4,16 +4,17 @@ from matplotlib import pyplot as plt
 from supg_rbf_transport import supg_transport, CS_Method
 from weak_rbf_transport import weak_transport
 from strong_rbf_transport import strong_transport
+from dfem_transport import dfem_transport
 
 def compare():
     basis = "multiquadric"
     weight = "compact_gaussian"
-    num_points_vals = np.array([2**i for i in range(3, 9)])
+    num_points_vals = np.array([2**i for i in range(3, 10)])
     num_vals = len(num_points_vals)
     ep_basis = 0.5
     ep_weight = 1.0
-    tau1 = 0.3
-    tau2 = 0.3
+    tau1 = 0.5
+    tau2 = 0.5
     sigma1 = 1.0
     sigma2 = 10.0
     source1 = 1.0
@@ -23,7 +24,7 @@ def compare():
     plot_results = True
     
     run_problem = True
-    cases = ['strong', 'weak', 'supg_full', 'supg_flux', 'supg_weight', 'supg_point']
+    cases = ['dfem', 'strong', 'weak', 'supg_full', 'supg_flux', 'supg_weight', 'supg_point']
     num_cases = len(cases)
     err = np.zeros((num_vals, num_cases))
     
@@ -33,7 +34,16 @@ def compare():
     if run_problem:
         for i, num_points in enumerate(num_points_vals):
             for j, case in enumerate(cases):
-                if case == 'strong':
+                if case == 'dfem':
+                    temp1, temp2, temp3, temp4, l2err = dfem_transport(int(num_points/4),
+                                                                       sigma1,
+                                                                       sigma2,
+                                                                       source1,
+                                                                       source2,
+                                                                       psi0,
+                                                                       plot_results)
+                    err[i, j] = l2err
+                elif case == 'strong':
                     temp1, temp2, temp3, temp4, l2err = strong_transport(basis,
                                                                          num_points,
                                                                          ep_basis,
@@ -137,11 +147,13 @@ def compare():
         err = np.loadtxt(filename)
     
     plt.figure()
+    markers = ["o", "s", "D", "v", "^", "<", ">", "*", "p"]
     for i, label in enumerate(cases):
-        plt.loglog(num_points_vals, err[:, i], marker="o", label=label, basex=2, basey=10)
+        plt.loglog(num_points_vals, err[:, i], marker=markers[i], label=label, basex=2, basey=10)
     plt.xlabel("number of points")
     plt.ylabel(r"$L_2$ error")
-    plt.legend()
+    plt.legend(fontsize="medium")
+    plt.grid(True)
     plt.savefig("../figs/{}.pdf".format(description))
     plt.close()
 

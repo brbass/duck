@@ -186,8 +186,8 @@ def supg_transport(basis_str,
     for i in range(num_points):
         for j in range(num_points):
             limits = weight.limits(j)
+            ta = tau_vals[j]
             if cs_method is CS_Method.full:
-                ta = tau_vals[j]
                 def integrand(x):
                     bas = basis.val(i, x)
                     dbas = basis.dval(i, x)
@@ -223,8 +223,10 @@ def supg_transport(basis_str,
             t2, abserr = spi.quad(integrand, limits[0], limits[1])
         b[j] = t1 + t2
 
+    # Solve equation for coefficients
     alpha = spl.solve(a, b)
 
+    # Calculate psi based on coefficients
     psi = np.zeros(num_points)
     for i in range(num_points):
         val = 0.
@@ -232,12 +234,14 @@ def supg_transport(basis_str,
             val += alpha[j] * basis.val(j, points[i])
         psi[i] = val
 
+    # Get analytic solution
     analytic = np.zeros(num_points)
     for i in range(num_points):
         analytic[i] = solution.val(points[i])
     err = psi - analytic
     l2err = np.divide(np.sqrt(np.sum(np.power(err, 2))), 1. * len(err))
 
+    # Plot results
     if plot_results:
         description += "_l2err={:5e}".format(l2err)
         col = ['#66c2a5','#fc8d62','#8da0cb','#e78ac3','#a6d854']
