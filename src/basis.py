@@ -134,6 +134,108 @@ class Wendland(Compact_RBF):
         else:
             return 0.
 
+class Linear_MLS(Compact_RBF):
+    def __init__(self,
+                 num_other_points,
+                 points):
+        self.num_polynomials = 2
+        self.num_other_points = num_other_points
+        self.points = points
+        self.num_points = len(points)
+        self.dx = points[1] - points[0]
+        self.bandwidth = 1. / (self.dx * (self.num_other_points + 0.1))
+        self.shape = self.bandwidth
+        Compact_RBF.__init__(self,
+                             self.dx,
+                             self.points,
+                             1. / self.bandwidth)
+    def weight(self,
+               i,
+               x):
+        d = self.bandwidth * (x - self.points[i])
+        d1 = np.abs(d)
+        if d1 <= 1:
+            return np.power(1. - d1, 3) * (1. + 3. * d1)
+        else:
+            return 0.
+        
+    def dweight(self,
+                i,
+                x):
+        d = self.bandwidth * (x - self.points[i])
+        d1 = np.abs(d)
+        if d1 <= 1:
+            return -12 * np.sign(d) * self.bandwidth * np.power(d1 - 1, 2) * d1
+        else:
+            return 0.
+        
+    def val(self,
+            i,
+            x):
+        xi = self.points[i]
+        if np.abs(self.bandwidth * (x - xi)) > 1:
+            return 0.
+        polyval = np.array([1, x])
+        a = np.zeros(3)
+        nearest_point = int(np.round(x / self.dx))
+        first_point = nearest_point - self.num_other_points - 1
+        last_point = nearest_point + self.num_other_points + 1
+        if first_point < 0:
+            first_point = 0
+        if last_point >= self.num_points:
+            last_point = self.num_points - 1
+        for j in range(first_point, last_point + 1):
+            xj = self.points[j]
+            w = self.weight(j, x)
+            a[0] += w
+            a[1] += w * xj
+            a[2] += w * xj * xj
+        denom = a[0]*a[2] - a[1]*a[1]
+        ainv = np.array([[a[2]/denom, -a[1]/denom],
+                         [-a[1]/denom, a[0]/denom]])
+        b = self.weight(i, x) * np.array([1, xi])
+        return np.dot(polyval, np.dot(ainv, b))
+    
+    def dval(self,
+             i,
+             x):
+        xi = self.points[i]
+        if np.abs(self.bandwidth * (x - xi)) > 1:
+            return 0.
+        polyval = np.array([1, x])
+        dpolyval = np.array([0, 1])
+        a = np.zeros(3)
+        da = np.zeros((2,2))
+        nearest_point = int(np.round(x / self.dx))
+        first_point = nearest_point - self.num_other_points - 1
+        last_point = nearest_point + self.num_other_points + 1
+        if first_point < 0:
+            first_point = 0
+        if last_point >= self.num_points:
+            last_point = self.num_points - 1
+        for j in range(first_point, last_point + 1):
+            xj = self.points[j]
+            w = self.weight(j, x)
+            a[0] += w
+            a[1] += w * xj
+            a[2] += w * xj * xj
+            dw = self.dweight(j, x)
+            da[0, 0] += dw
+            da[1, 0] += dw * xj
+            da[0, 1] += dw * xj
+            da[1, 1] += dw * xj * xj
+        denom = a[0]*a[2] - a[1]*a[1]
+        ainv = np.array([[a[2]/denom, -a[1]/denom],
+                         [-a[1]/denom, a[0]/denom]])
+        polypoint = np.array([1, xi])
+        b = self.weight(i, x) * polypoint
+        db = self.dweight(i, x) * polypoint
+        dainv = -np.dot(ainv, np.dot(da, ainv))
+        t1 = np.dot(dpolyval, np.dot(ainv, b))
+        t2 = np.dot(polyval, np.dot(dainv, b))
+        t3 = np.dot(polyval, np.dot(ainv, db))
+        return t1 + t2 + t3
+
 class MLS(Compact_RBF):
     def __init__(self,
                  num_polynomials,
