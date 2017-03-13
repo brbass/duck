@@ -81,7 +81,7 @@ def supg_transport(basis_str,
     length = 2
     points = np.linspace(0, length, num_points)
     dx = points[1] - points[0]
-    mu = 1
+    mu = 1. / np.sqrt(3.)
     
     # Set cross section and source
     sigma_t = Cross_Section(sigma1,
@@ -206,11 +206,11 @@ def supg_transport(basis_str,
     elif cs_method is CS_Method.point:
         for i in range(num_points):
             sigma_t_vals[i] = sigma_t.val(points[i])
-            
+    
     # Initialize arrays
     a = np.zeros((num_points, num_points), dtype=float)
     b = np.zeros((num_points), dtype=float)
-    
+
     # Set matrix
     for i in range(num_points):
         for j in range(num_points):
@@ -244,7 +244,7 @@ def supg_transport(basis_str,
                 a[j, i] = t1 + t2
             else:
                 a[j, i] = 0
-                
+    
     # Set RHS
     for j in range(num_points):
         limits = weight.limits(j)

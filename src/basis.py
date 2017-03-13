@@ -60,7 +60,7 @@ class Compact_Gaussian(Compact_RBF):
         Compact_RBF.__init__(self,
                              shape,
                              points,
-                             3.)
+                             5.)
     
     def val(self,
             i,
