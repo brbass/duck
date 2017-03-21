@@ -81,7 +81,7 @@ def supg_transport(basis_str,
     length = 2
     points = np.linspace(0, length, num_points)
     dx = points[1] - points[0]
-    mu = 1. / np.sqrt(3.)
+    mu = 1.
     
     # Set cross section and source
     sigma_t = Cross_Section(sigma1,
