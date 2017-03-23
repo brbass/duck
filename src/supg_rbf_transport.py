@@ -56,6 +56,7 @@ def supg_transport(basis_str,
                    source1,
                    source2,
                    psi0,
+                   mu,
                    plot_results = False):
     if quadrature_order == 0:
         fixed_quadrature = False
@@ -81,7 +82,7 @@ def supg_transport(basis_str,
     length = 2
     points = np.linspace(0, length, num_points)
     dx = points[1] - points[0]
-    mu = 1.
+    mu = 0.9
     
     # Set cross section and source
     sigma_t = Cross_Section(sigma1,
@@ -148,7 +149,8 @@ def supg_transport(basis_str,
     # Set problem solution
     solution = Solution(sigma_t,
                         source,
-                        psi0)
+                        psi0,
+                        mu)
 
     # Set the SUPG parameter
     tau = Cross_Section(tau1 / weight.shape,
@@ -249,7 +251,7 @@ def supg_transport(basis_str,
     for j in range(num_points):
         limits = weight.limits(j)
         def integrand(x):
-            return (weight.val(j, x) + tau_vals[j] * weight.dval(j, x)) * source.val(x)
+            return (weight.val(j, x) + tau_vals[j] * mu * weight.dval(j, x)) * source.val(x)
 
         t1 = mu * psi0 * weight.val(j, points[0])
         if fixed_quadrature:
@@ -268,26 +270,43 @@ def supg_transport(basis_str,
         for j in range(num_points):
             val += alpha[j] * basis.val(j, points[i])
         psi[i] = val
+
+    # Get fine values of psi
+    num_plot = 200
+    x_plot = np.linspace(points[0], points[-1], num_plot, endpoint=True)
+    psi_plot = np.zeros(num_plot)
+    for i in range(num_plot):
+        val = 0;
+        for j in range(num_points):
+            val += alpha[j] * basis.val(j, x_plot[i])
+        psi_plot[i] = val
+
+    # Get fine values of analytic solution
+    analytic_plot = np.zeros(num_plot)
+    for i in range(num_plot):
+        analytic_plot[i] = solution.val(x_plot[i])
+    err_plot = psi_plot - analytic_plot
+    l2err = np.divide(np.sqrt(np.sum(np.power(err_plot, 2))), 1. * len(err_plot))
         
     # Get analytic solution
     analytic = np.zeros(num_points)
     for i in range(num_points):
         analytic[i] = solution.val(points[i])
     err = psi - analytic
-    l2err = np.divide(np.sqrt(np.sum(np.power(err, 2))), 1. * len(err))
-
+    # l2err = np.divide(np.sqrt(np.sum(np.power(err, 2))), 1. * len(err))
+    
     # Plot results
     if plot_results:
         description += "_l2err={:5e}".format(l2err)
         col = ['#66c2a5','#fc8d62','#8da0cb','#e78ac3','#a6d854']
         fig, ax1 = plt.subplots()
         ax2 = ax1.twinx()
-        ln1 = ax1.plot(points, analytic, label="analytic", color=col[0])
-        ln2 = ax1.plot(points, psi, label="numeric", color=col[1])
+        ln1 = ax1.plot(x_plot, analytic_plot, label="analytic", color=col[0])
+        ln2 = ax1.plot(x_plot, psi_plot, label="numeric", color=col[1])
         ax1.set_xlabel("x")
         ax1.set_ylabel(r"$\psi(x)$")
         ax1.grid()
-        ln3 = ax2.plot(points, err, label="error", color=col[2])
+        ln3 = ax2.plot(x_plot, err_plot, label="error", color=col[2])
         ax2.set_ylabel(r"$err(\psi(x))$")
         lns = ln1+ln2+ln3
         labs = [l.get_label() for l in lns]
@@ -299,8 +318,8 @@ def supg_transport(basis_str,
     return points, analytic, psi, err, l2err
 
 if __name__ == '__main__':
-    if len(sys.argv) != 15:
-        print("supg_rbf_transport [basis weight cs_method fixed_quadrature num_points ep_basis ep_weight tau1 tau2 sigma1 sigma2 source1 source2 psi0]")
+    if len(sys.argv) != 16:
+        print("supg_rbf_transport [basis weight cs_method fixed_quadrature num_points ep_basis ep_weight tau1 tau2 sigma1 sigma2 source1 source2 psi0 mu]")
         sys.exit()
     i = itertools.count(1)
     basis = str(sys.argv[next(i)])
@@ -317,6 +336,7 @@ if __name__ == '__main__':
     source1 = float(sys.argv[next(i)])
     source2 = float(sys.argv[next(i)])
     psi0 = float(sys.argv[next(i)])
+    mu = float(sys.argv[next(i)])
     
     points, analytic, psi, err, l2err = supg_transport(basis,
                                                        weight,
@@ -332,4 +352,5 @@ if __name__ == '__main__':
                                                        source1,
                                                        source2,
                                                        psi0,
+                                                       mu,
                                                        True)
