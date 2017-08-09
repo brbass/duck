@@ -392,10 +392,10 @@ class Constant(Compact_RBF):
             return 0.
 
 if __name__ == '__main__':
-    points = np.linspace(0, 1, 10)
-    shape = 2.0
-    sigma_t = Cross_Section(1.0,
-                            2.0)
+    # points = np.linspace(0, 1, 10)
+    # shape = 2.0
+    # sigma_t = Cross_Section(1.0,
+    #                         2.0)
     # funcs = [Wendland(shape,
     #                   points),
     #          Multiquadric(shape,
@@ -410,30 +410,37 @@ if __name__ == '__main__':
     #                        points,
     #                        sigma_t)]
     # desc = ["wend", "mult", "gauss", "const", "com_gauss", "supg_gauss"]
-    funcs = [MLS(2,
-                 3,
-                 points)]
-    desc = ["mls"]
-    col = ['#66c2a5','#fc8d62','#8da0cb','#e78ac3','#a6d854', 'k']
-    plot_points = np.linspace(0, 1, 200)
-    for i, func in enumerate(funcs):
-        for j, point in enumerate(points):
-            vals = np.array([func.val(j, x) for x in plot_points])
-            dvals = np.array([func.dval(j, x) for x in plot_points])
-            if j == 0:
-                plt.figure(0)
-                plt.plot(plot_points, vals, color=col[i], label=desc[i])
-                plt.figure(1)
-                plt.plot(plot_points, dvals, color=col[i], label=desc[i])
-            else:
-                plt.figure(0)
-                plt.plot(plot_points, vals, color=col[i])
-                plt.figure(1)
-                plt.plot(plot_points, dvals, color=col[i])
-    plt.figure(0)
-    plt.legend()
-    plt.tight_layout()
-    plt.figure(1)
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+    # funcs = [MLS(2,
+    #              3,
+    #              points)]
+    # desc = ["mls"]
+    # col = ['#66c2a5','#fc8d62','#8da0cb','#e78ac3','#a6d854', 'k']
+    # plot_points = np.linspace(0, 1, 200)
+    # for i, func in enumerate(funcs):
+    #     for j, point in enumerate(points):
+    #         vals = np.array([func.val(j, x) for x in plot_points])
+    #         dvals = np.array([func.dval(j, x) for x in plot_points])
+    #         if j == 0:
+    #             plt.figure(0)
+    #             plt.plot(plot_points, vals, color=col[i], label=desc[i])
+    #             plt.figure(1)
+    #             plt.plot(plot_points, dvals, color=col[i], label=desc[i])
+    #         else:
+    #             plt.figure(0)
+    #             plt.plot(plot_points, vals, color=col[i])
+    #             plt.figure(1)
+    #             plt.plot(plot_points, dvals, color=col[i])
+    # plt.figure(0)
+    # plt.legend()
+    # plt.tight_layout()
+    # plt.figure(1)
+    # plt.legend()
+    # plt.tight_layout()
+    # plt.show()
+    num_points = 11
+    other_points = 5
+    points = np.linspace(0, 2, num_points)
+    func = Linear_MLS(other_points, points)
+    print(func.dval(0, 0.1))
+    
+    

@@ -104,7 +104,7 @@ def supg_transport(basis_str,
         basis = Compact_Gaussian(ep_basis,
                                  points)
     elif basis_str == "mls":
-        polyord = 1
+        polyord = 2
         num_neighbors = int(ep_basis)
         basis = MLS(polyord,
                     num_neighbors,

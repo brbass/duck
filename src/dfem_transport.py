@@ -12,6 +12,7 @@ def dfem_transport(half_elements,
                    source1,
                    source2,
                    psi0,
+                   mu,
                    plot_results = False):
     # Get problem description
     description = "dfem_{}_{}_{}_{}_{}_{}".format(half_elements*2,
@@ -32,7 +33,6 @@ def dfem_transport(half_elements,
             points[n + num_nodes * i] = cont_points[n + i]
     dx = points[1] - points[0]
     midpoints = np.linspace(0.5*dx, length-0.5*dx, num_elements, endpoint=True)
-    mu = 1
     
     # Set cross section and source
     sigma_t = Cross_Section(sigma1,
@@ -68,7 +68,8 @@ def dfem_transport(half_elements,
     # Get analytic solution
     solution = Solution(sigma_t,
                         source,
-                        psi0)
+                        psi0,
+                        mu)
     analytic = np.zeros(num_elements * num_nodes)
     for i in range(num_elements * num_nodes):
         analytic[i] = solution.val(points[i])

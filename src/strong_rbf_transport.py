@@ -15,6 +15,7 @@ def strong_transport(basis_str,
                      source1,
                      source2,
                      psi0,
+                     mu,
                      plot_results = False):
     # Get problem description
     description = "strong_{}_{}_{}_{}_{}_{}_{}_{}".format(basis_str,
@@ -29,7 +30,6 @@ def strong_transport(basis_str,
     # Initialize geometry
     length = 2
     points = np.linspace(0, length, num_points)
-    mu = 1
     
     # Set basis and weight functions
     if basis_str == "multiquadric":
@@ -91,7 +91,8 @@ def strong_transport(basis_str,
 
     solution = Solution(sigma_t,
                         source,
-                        psi0)
+                        psi0,
+                        mu)
     analytic = np.zeros(num_points)
     for i in range(num_points):
         analytic[i] = solution.val(points[i])

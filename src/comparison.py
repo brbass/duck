@@ -7,11 +7,11 @@ from strong_rbf_transport import strong_transport
 from dfem_transport import dfem_transport
 
 def compare():
-    basis = "linear_mls"
+    basis = "compact_gaussian"
     weight = "compact_gaussian"
     num_points_vals = np.array([2**i for i in range(3, 10)])
     num_vals = len(num_points_vals)
-    ep_basis = 3
+    ep_basis = 1.0
     ep_weight = 1.0
     tau1 = 1.0
     tau2 = 1.0
@@ -20,8 +20,9 @@ def compare():
     source1 = 1.0
     source2 = 0.0
     psi0 = 0.0
+    mu = 1.0
     quadrature_order = 32
-    plot_results = True
+    plot_results = False
     
     run_problem = True
     cases = ['dfem', 'strong', 'weak', 'supg_full', 'supg_flux', 'supg_weight', 'supg_point']
@@ -41,6 +42,7 @@ def compare():
                                                                        source1,
                                                                        source2,
                                                                        psi0,
+                                                                       mu,
                                                                        plot_results)
                     err[i, j] = l2err
                 elif case == 'strong':
@@ -52,6 +54,7 @@ def compare():
                                                                          source1,
                                                                          source2,
                                                                          psi0,
+                                                                         mu,
                                                                          plot_results)
                     err[i, j] = l2err
                 elif case == 'weak':
@@ -69,6 +72,7 @@ def compare():
                                                                        source1,
                                                                        source2,
                                                                        psi0,
+                                                                       mu,
                                                                        plot_results)
                     err[i, j] = l2err
                 elif case == 'supg_full':
@@ -86,6 +90,7 @@ def compare():
                                                                        source1,
                                                                        source2,
                                                                        psi0,
+                                                                       mu,
                                                                        plot_results)
                     err[i, j] = l2err
                 elif case == 'supg_flux':
@@ -103,6 +108,7 @@ def compare():
                                                                        source1,
                                                                        source2,
                                                                        psi0,
+                                                                       mu,
                                                                        plot_results)
                     err[i, j] = l2err
                 elif case == 'supg_weight':
@@ -120,6 +126,7 @@ def compare():
                                                                        source1,
                                                                        source2,
                                                                        psi0,
+                                                                       mu,
                                                                        plot_results)
                     err[i, j] = l2err
                 elif case == 'supg_point':
@@ -137,6 +144,7 @@ def compare():
                                                                        source1,
                                                                        source2,
                                                                        psi0,
+                                                                       mu,
                                                                        plot_results)
                     err[i, j] = l2err
                 else:
