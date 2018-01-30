@@ -11,6 +11,8 @@ class Cross_Section:
             return self.val1
         else:
             return self.val2
+    def description(self):
+        return "cross-section"
 
 class Solution:
     def __init__(self,

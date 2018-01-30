@@ -5,6 +5,38 @@ from two_region import Cross_Section
 
 # Basis and weight functions
 
+def get_basis(description,
+              points,
+              epsilon):
+    if description == "multiquadric":
+        basis = Multiquadric(epsilon,
+                             points)
+    elif description == "gaussian":
+        basis = Gaussian(epsilon,
+                         points)
+    elif description == "wendland":
+        basis = Wendland(epsilon,
+                         points)
+    elif description == "compact-gaussian":
+        basis = Compact_Gaussian(epsilon,
+                                 points)
+    elif description == "mls":
+        polyord = 2
+        num_neighbors = int(epsilon)
+        basis = MLS(polyord,
+                    num_neighbors,
+                    points)
+    elif description == "linear-mls":
+        num_neighbors = int(epsilon)
+        basis = Linear_MLS(num_neighbors,
+                           points)
+    else:
+        print("basis not found: " + description)
+        return
+    
+    return basis
+    
+
 class RBF:
     def __init__(self,
                  shape,
@@ -15,6 +47,8 @@ class RBF:
     def limits(self,
                i):
         return [self.points[0], self.points[-1]]
+    def description(self):
+        return "rbf"
 
 class Compact_RBF(RBF):
     def __init__(self,
@@ -33,6 +67,8 @@ class Compact_RBF(RBF):
     def limits(self,
                i):
         return self.limit[i, :]
+    def description(self):
+        return "compact-rbf"
         
 class Multiquadric(RBF):
     def __init__(self,
@@ -52,6 +88,8 @@ class Multiquadric(RBF):
              x):
         d = x - self.points[i]
         return np.power(self.shape, 2) * d / np.sqrt(1 + np.power(d * self.shape, 2))
+    def description(self):
+        return "multiquadric"
 
 class Compact_Gaussian(Compact_RBF):
     def __init__(self,
@@ -88,6 +126,8 @@ class Compact_Gaussian(Compact_RBF):
             return 2. * np.exp(2) * np.power(self.shape, 2) * (2. * np.exp(2) * np.power(d, 2) - 1) * np.exp(-np.power(d * self.shape, 2))
         else:
             return 0.
+    def description(self):
+        return "compact-gaussian"
         
 class Gaussian(RBF):
     def __init__(self,
@@ -106,6 +146,8 @@ class Gaussian(RBF):
              x):
         d = x - self.points[i]
         return -2 * np.power(self.shape, 2) * d * np.exp(-np.power(d * self.shape, 2))
+    def description(self):
+        return "gaussian"
 
 class Wendland(Compact_RBF):
     def __init__(self,
@@ -133,6 +175,8 @@ class Wendland(Compact_RBF):
             return 20 * self.shape * d * np.power(d - 1, 3)
         else:
             return 0.
+    def description(self):
+        return "wendland"
 
 class Linear_MLS(Compact_RBF):
     def __init__(self,
@@ -235,6 +279,8 @@ class Linear_MLS(Compact_RBF):
         t2 = np.dot(polyval, np.dot(dainv, b))
         t3 = np.dot(polyval, np.dot(ainv, db))
         return t1 + t2 + t3
+    def description(self):
+        return "linear-mls"
 
 class MLS(Compact_RBF):
     def __init__(self,
@@ -363,6 +409,8 @@ class MLS(Compact_RBF):
         t2 = np.dot(polyval, np.dot(dainvval, bval))
         t3 = np.dot(polyval, np.dot(ainvval, dbval))
         return t1 + t2 + t3
+    def description(self):
+        return "mls"
 
 class Constant(Compact_RBF):
     def __init__(self,
@@ -390,6 +438,8 @@ class Constant(Compact_RBF):
             return 0.
         else:
             return 0.
+    def description(self):
+        return "constant"
 
 if __name__ == '__main__':
     # points = np.linspace(0, 1, 10)
