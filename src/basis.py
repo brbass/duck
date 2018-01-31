@@ -2,6 +2,8 @@ import numpy as np
 import sys
 from matplotlib import pyplot as plt
 from two_region import Cross_Section
+import numpy.polynomial.legendre as npl
+import bisect
 
 # Basis and weight functions
 
@@ -35,8 +37,114 @@ def get_basis(description,
         return
     
     return basis
-    
 
+class FEM_Basis:
+    def __init__(self,
+                 order,
+                 points):
+        self.order = order
+        self.num_nodes = order + 1
+        self.num_points = len(points)
+        self.num_cells = self.num_points - 1
+        self.points = points
+        self.length = np.zeros((self.num_cells), dtype=float)
+        self.center = np.zeros((self.num_cells), dtype=float)
+        for i in range(self.num_cells):
+            self.length[i] = self.points[i+1] - self.points[i]
+            self.center[i] = 0.5 * (self.points[i+1] + self.points[i])
+        self.length2 = np.divide(self.length, 2)
+    def local_pos(self,
+                  i, # cell
+                  x):
+        xi = (x - self.center[i]) / self.length2[i]
+        if (xi >= 1.+1e-10 or xi <= -1.-1e-10):
+            print("xi value incorrect: {}".format(xi))
+        return xi
+
+    def get_cell(self,
+                 x):
+        return bisect.bisect(self.points, x, lo=1, hi=self.num_cells) - 1
+    
+    def val(self,
+            i, # cell
+            j, # basis
+            x):
+        xi = self.local_pos(i,
+                            x)
+        return self.funcs[j](xi)
+    
+    def dval(self,
+             i, # cell
+             j, # basis
+             x):
+        xi = self.local_pos(i,
+                            x)
+        return self.dfuncs[j](xi) / self.length2[i]
+
+class Lagrange(FEM_Basis):
+    def __init__(self,
+                 order,
+                 points):
+        FEM_Basis.__init__(self,
+                           order,
+                           points)
+        if order == 1:
+            self.funcs = [lambda x: (1 - x)/2.,
+                          lambda x: (1 + x)/2.]
+            self.dfuncs = [lambda x: -0.5,
+                           lambda x: 0.5]
+        elif order == 2:
+            self.funcs = [lambda x: ((-1 + x)*x)/2.,
+                          lambda x: 1 - pow(x,2),
+                          lambda x: (x*(1 + x))/2.]
+            self.dfuncs = [lambda x: -0.5 + x,
+                           lambda x: -2*x,
+                           lambda x: 0.5 + x]
+        elif order == 3:
+            self.funcs = [lambda x: (-1 + x + 9*pow(x,2) - 9*pow(x,3))/16.,
+                          lambda x: (9*(-1 + x)*(1 + x)*(-1 + 3*x))/16.,
+                          lambda x: (-9*(-1 + x)*(1 + x)*(1 + 3*x))/16.,
+                          lambda x: ((1 + x)*(-1 + 3*x)*(1 + 3*x))/16.]
+            self.dfuncs = [lambda x: (1 + 9*(2 - 3*x)*x)/16.,
+                           lambda x: (9*(-3 + x*(-2 + 9*x)))/16.,
+                           lambda x: (-9*(-3 + x*(2 + 9*x)))/16.,
+                           lambda x: (-1 + 9*x*(2 + 3*x))/16.]
+        elif order == 4:
+            self.funcs = [lambda x: ((-1 + x)*x*(-1 + 2*x)*(1 + 2*x))/6.,
+                          lambda x: (-4*(-1 + x)*x*(1 + x)*(-1 + 2*x))/3.,
+                          lambda x: 1 - 5*pow(x,2) + 4*pow(x,4),
+                          lambda x: (-4*(-1 + x)*x*(1 + x)*(1 + 2*x))/3.,
+                          lambda x: (x*(1 + x)*(-1 + 2*x)*(1 + 2*x))/6.]
+            self.dfuncs = [lambda x: ((-1 + 4*x)*(-1 - 2*x + 4*pow(x,2)))/6.,
+                           lambda x: (4*(-1 + x*(4 + (3 - 8*x)*x)))/3.,
+                           lambda x: 2*x*(-5 + 8*pow(x,2)),
+                           lambda x: (4*(1 + x*(4 - x*(3 + 8*x))))/3.,
+                           lambda x: ((1 + 4*x)*(-1 + 2*x + 4*pow(x,2)))/6.]
+        else:
+            print("lagrange order {} not available".format(order))
+            
+class Legendre(FEM_Basis):
+    def __init__(self,
+                 order,
+                 points):
+        FEM_Basis.__init__(self,
+                           order,
+                           points)
+        if order < 1 or order > 5:
+            print("legendre order not available")
+        self.funcs = [lambda x: 1,
+                      lambda x: x,
+                      lambda x: 0.5 * (3 * x**2 - 1),
+                      lambda x: 0.5 * (5 * x**3 - 3 * x),
+                      lambda x: 0.125 * (35 * x**4 - 30 * x**2 + 3),
+                      lambda x: 0.125 * (63 * x**5 - 70 * x**3 + 15 * x)]
+        self.dfuncs = [lambda x: 0,
+                       lambda x: 1,
+                       lambda x: 3 * x,
+                       lambda x: 0.5 * (15 * x**2 - 3),
+                       lambda x: 0.125 * (140 * x**3 - 60 * x),
+                       lambda x: 0.125 * (315 * x**4 - 210 * x**2 + 15)]
+        
 class RBF:
     def __init__(self,
                  shape,
@@ -49,6 +157,8 @@ class RBF:
         return [self.points[0], self.points[-1]]
     def description(self):
         return "rbf"
+    def local(self):
+        return False
 
 class Compact_RBF(RBF):
     def __init__(self,
@@ -69,6 +179,8 @@ class Compact_RBF(RBF):
         return self.limit[i, :]
     def description(self):
         return "compact-rbf"
+    def local(self):
+        return True
         
 class Multiquadric(RBF):
     def __init__(self,
